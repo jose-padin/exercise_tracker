@@ -73,11 +73,6 @@ app.post('/api/users', (req, res) => {
         return res.json({username: savedUser.username, _id: savedUser._id})
       }
     })
-    // User.create({username: username}, (err, user) => {
-    //   if (err) return res.redirect(req_url);
-
-    //   res.json({username: user.username, _id: user._id});
-    // })
   }
 });
 
@@ -102,29 +97,34 @@ app.post('/api/users/:_id/exercises', (req, res) => {
   const duration = req.body.duration;
   let date = req.body.date;
 
-  if (!date) date = new Date();
 
   if (user_id && description && duration) {
-      User.findOne({_id: user_id}, (err, user) => {
-        if (err) return res.redirect(req_url);
+    if (!date) date = new Date();
 
-        if (user) {
-          Exercise.create({
-            userId: user._id,
-            description: description,
-            duration: duration,
-            date:date
-          }, (err, exercise) => {
-            if (err) {
-              return res.redirect(req_url);
-            }
+    User.findOne({_id: user_id}, (err, user) => {
+      if (err) return res.redirect(req_url);
 
-          return res.send({
-            user: user,
-            description: exercise.description,
-            duration: exercise.duration,
-            date: exercise.date
-          });
+      if (user) {
+        let exercise = new Exercise({
+          userId: user._id,
+          description: description,
+          duration: duration,
+          date:date
+        });
+
+        exercise.save((err, savedExercise) => {
+          if (err) {
+            return res.redirect(req_url);
+          }
+
+          if (!err) {
+            return res.send({
+              user: user,
+              description: savedExercise.description,
+              duration: savedExercise.duration,
+              date: savedExercise.date
+            })
+          }
         })
       }
     })
