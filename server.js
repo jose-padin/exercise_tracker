@@ -1,22 +1,22 @@
-const express = require('express')
-const app = express()
+const express = require('express');
+const app = express();
 const bodyParser = require('body-parser');
-const cors = require('cors')
-require('dotenv').config()
+const cors = require('cors');
+require('dotenv').config();
 
-const MONGO_URI = process.env.MONGO_URI
+const MONGO_URI = process.env.MONGO_URI;
 const mongoose = require('mongoose');
-const db = mongoose.connect(MONGO_URI)
+const db = mongoose.connect(MONGO_URI);
 const User = require('./models/user');
 const Exercise = require('./models/exercise');
 
-app.use(cors())
-app.use(express.static('public'))
-app.use(bodyParser.urlencoded({extended: false}))
-
+app.use(cors());
+app.use(express.static('public'));
+app.use(bodyParser.urlencoded({extended: false}));
+app.use(bodyParser.json());
 
 app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/views/index.html')
+  res.sendFile(__dirname + '/views/index.html');
 });
 
 
@@ -24,14 +24,14 @@ app.get('/api/users/:username', (req, res) => {
   const username = req.params.username;
   if (username) {
     User.findOne({username: username}, (err, user) => {
-      return res.json({username: user.username, _id: user._id})
+      return res.json({username: user.username, _id: user._id});
     })
   }
 })
 
 
 app.get('/api/users/:_id/exercises', (req, res) => {
-  const req_url = `${req.protocol}://${req.get('host')}${req.originalUrl}`
+  const req_url = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
   const _id = req.params._id;
 
   if (_id) {
@@ -48,14 +48,13 @@ app.get('/api/users/:_id/exercises', (req, res) => {
               description: exercise.description,
               duration: exercise.duration,
               date: exercise.date
-            })
+            });
           }
 
           return res.json({
             username: user.username,
             log: log
-          })
-
+          });
         })
       }
     })
@@ -64,26 +63,51 @@ app.get('/api/users/:_id/exercises', (req, res) => {
 
 
 app.post('/api/users', (req, res) => {
-  const req_url = `${req.protocol}://${req.get('host')}${req.originalUrl}`
+  const req_url = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
   const username = req.body.username;
+
   if (username) {
-    User.create({username: username}, (err, user) => {
-      if (err) return console.log(err);
-      res.redirect(req_url)
+    let user = new User({username: username});
+    user.save((err, savedUser) => {
+      if (!err) {
+        return res.json({username: savedUser.username, _id: savedUser._id})
+      }
     })
+    // User.create({username: username}, (err, user) => {
+    //   if (err) return res.redirect(req_url);
+
+    //   res.json({username: user.username, _id: user._id});
+    // })
   }
 });
 
 
+app.get('/api/users', (req, res) => {
+  let payload = [];
+
+  User.find({}, (err, users) => {
+    for (let user of users) {
+      payload.push({username: user.username, _id: user._id});
+    }
+
+    return res.send(payload);
+  })
+})
+
+
 app.post('/api/users/:_id/exercises', (req, res) => {
+  const req_url = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
   const user_id = req.body._id;
   const description = req.body.description;
   const duration = req.body.duration;
-  const date = req.body.date;
+  let date = req.body.date;
+
+  if (!date) date = new Date();
 
   if (user_id && description && duration) {
       User.findOne({_id: user_id}, (err, user) => {
         if (err) return res.redirect(req_url);
+
         if (user) {
           Exercise.create({
             userId: user._id,
@@ -94,16 +118,22 @@ app.post('/api/users/:_id/exercises', (req, res) => {
             if (err) {
               return res.redirect(req_url);
             }
-            res.redirect(req_url);
-          })
-        }
-      })
+
+          return res.send({
+            user: user,
+            description: exercise.description,
+            duration: exercise.duration,
+            date: exercise.date
+          });
+        })
+      }
+    })
   }
 });
 
 
 app.get('/api/users/:_id/logs', (req, res) => {
-  const req_url = `${req.protocol}://${req.get('host')}${req.originalUrl}`
+  const req_url = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
   const user_id = req.params._id;
   const query_params = req.query;
   const count_query_params = Object.keys(req.query).length;
@@ -125,34 +155,35 @@ app.get('/api/users/:_id/logs', (req, res) => {
 
   if (user_id) {
     User.findOne({_id: user_id}, (err, user) => {
-      if (err) return res.redirect(req_url)
+      if (err) return res.redirect(req_url);
 
       if (user) {
         let query;
         if (date_from && date_to) {
-          query = Exercise.find({userId: user._id, date: {$gte: date_from, $lte: date_to}})
+          query = Exercise.find({userId: user._id, date: {$gte: date_from, $lte: date_to}});
         } else if (date_from && !date_to) {
-          query = Exercise.find({userId: user._id, date: {$gte: date_from}})
+          query = Exercise.find({userId: user._id, date: {$gte: date_from}});
         } else if (date_to && !date_from) {
-          query = Exercise.find({userId: user._id, date: {$lte: date_to}})
+          query = Exercise.find({userId: user._id, date: {$lte: date_to}});
         } else {
-          query = Exercise.find({userId: user._id})
+          query = Exercise.find({userId: user._id});
         }
 
         query.limit(limit).exec((err, exercises) => {
-          if (err) return res.redirect(req_url)
+          if (err) return res.redirect(req_url);
+
           let log = [];
           for (let exercise of exercises) {
             let _date = exercise.date;
             if (exercise.date) {
-              _date = exercise.date.toDateString()
+              _date = exercise.date.toDateString();
             }
 
             log.push({
               description: exercise.description,
               duration: exercise.duration,
               date: _date
-            })
+            });
           }
 
           return res.json({
@@ -163,7 +194,7 @@ app.get('/api/users/:_id/logs', (req, res) => {
           })
         })
       } else {
-        return res.redirect(req_url)
+        return res.redirect(req_url);
       }
     });
   }
@@ -171,5 +202,5 @@ app.get('/api/users/:_id/logs', (req, res) => {
 
 
 const listener = app.listen(process.env.PORT || 3005, () => {
-  console.log('Your app is listening on port ' + listener.address().port)
+  console.log('Your app is listening on port ' + listener.address().port);
 })
