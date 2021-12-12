@@ -102,14 +102,14 @@ app.post('/api/users/:_id/exercises', (req, res) => {
     if (!date) date = new Date();
 
     User.findOne({_id: user_id}, (err, user) => {
-      if (err) return res.redirect(req_url);
+      if (err) return res.json({error: 'User not found'});
 
       if (user) {
         let exercise = new Exercise({
           userId: user._id,
           description: description,
-          duration: duration,
-          date:date
+          duration: parseInt(duration),
+          date: date.toDateString()
         });
 
         exercise.save((err, savedExercise) => {
@@ -119,10 +119,11 @@ app.post('/api/users/:_id/exercises', (req, res) => {
 
           if (!err) {
             return res.send({
-              user: user,
+              _id: user._id,
+              username: user.username,
               description: savedExercise.description,
               duration: savedExercise.duration,
-              date: savedExercise.date
+              date: savedExercise.date.toDateString()
             })
           }
         })
@@ -190,7 +191,7 @@ app.get('/api/users/:_id/logs', (req, res) => {
             username: user.username,
             count: exercises.length,
             _id: user._id,
-            log: log
+            log
           })
         })
       } else {
