@@ -21,46 +21,13 @@ app.get('/', (req, res) => {
 
 
 app.get('/api/users/:username', (req, res) => {
-  const username = req.params.username;
+  const { username } = req.params;
   if (username) {
     User.findOne({username: username}, (err, user) => {
       return res.json({username: user.username, _id: user._id});
     })
   }
 })
-
-
-// TODO: redo
-// app.get('/api/users/:_id/exercises', (req, res) => {
-//   const req_url = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
-//   const _id = req.params._id;
-
-//   if (_id) {
-//     User.findOne({_id: _id}, (err, user) => {
-//       if (err) return res.redirect(req_url);
-//       let log = [];
-
-//       if (user) {
-//         Exercise.find({userId: user._id}, (err, exercises) => {
-//           if (err) return res.redirect(req_url);
-
-//           for (let exercise of exercises) {
-//             log.push({
-//               description: exercise.description,
-//               duration: exercise.duration,
-//               date: exercise.date
-//             });
-//           }
-
-//           return res.json({
-//             username: user.username,
-//             log: log
-//           });
-//         })
-//       }
-//     })
-//   }
-// })
 
 
 app.post('/api/users', (req, res) => {
@@ -99,8 +66,8 @@ app.get('/api/users', (req, res) => {
 
 
 app.post('/api/users/:_id/exercises', (req, res) => {
-  const { _id } = req.params
-  let { description, duration, date } = req.body
+  const { _id } = req.params;
+  let { description, duration, date } = req.body;
 
   if (_id && description && duration) {
     date ? dateObj = new Date(date) : dateObj = new Date();
@@ -117,13 +84,13 @@ app.post('/api/users/:_id/exercises', (req, res) => {
         }
       },
       {new: true})
-      .then(updadetUser => {
+      .then(updadedtUser => {
         res.json({
-          username: updadetUser.username,
-          description: updadetUser.log[updadetUser.log.length - 1].description,
-          duration: updadetUser.log[updadetUser.log.length - 1].duration,
-          _id: updadetUser._id,
-          date: updadetUser.log[updadetUser.log.length - 1].date.toDateString()
+          username: updadedtUser.username,
+          description: updadedtUser.log[updadedtUser.log.length - 1].description,
+          duration: updadedtUser.log[updadedtUser.log.length - 1].duration,
+          date: updadedtUser.log[updadedtUser.log.length - 1].date.toDateString(),
+          _id: updadedtUser._id
         })
       }).catch(err => {
         return console.log(err);
@@ -132,54 +99,62 @@ app.post('/api/users/:_id/exercises', (req, res) => {
   })
 
 
-// TODO: redo without Exercise
 app.get('/api/users/:_id/logs', (req, res) => {
   const req_url = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
-  const _id = req.params._id;
-  const query_params = req.query;
-  let date_from = query_params['from'];
-  let date_to = query_params['to'];
-  let limit = query_params['limit'] || 0;
+  const { _id } = req.params;
+  let { from, to, limit } = req.query;
   let query;
   let returnedObj = {};
 
-  if (date_from) {
-    date_from = new Date(date_from);
+  if (from) {
+    from = new Date(from);
   }
 
-  if (date_to) {
-    date_to = new Date(date_to);
+  if (to) {
+    to = new Date(to);
   }
 
   if (limit) {
-    limit = parseInt(limit);
+    limit = +limit;
   }
 
   if (_id) {
-    if (date_from && date_to) {
-      query = User.find({_id: _id, 'log.date': {$gte: date_from, $lte: date_to}});
-    } else if (date_from && !date_to) {
-      query = User.find({_id: _id, 'log.date': {$gte: date_from}});
-    } else if (date_to && !date_from) {
-      query = User.find({_id: _id, 'log.date': {$lte: date_to}});
+    if (from && to) {
+      query = User.find({_id: _id, 'log.date': {$gte: from, $lte: to}});
+    } else if (from && !to) {
+      query = User.find({_id: _id, 'log.date': {$gte: from}});
+    } else if (to && !from) {
+      query = User.find({_id: _id, 'log.date': {$lte: to}});
     } else {
       query = User.find({_id: _id});
     }
 
-    if (limit) query = query.limit(limit)
+    if (limit) query = query.limit(limit);
 
     User.findOne(query, (err, user) => {
       if (err) return res.redirect(req_url);
+
       if (user) {
         returnedObj['username'] = user.username;
-        returnedObj['log'] = user.log.slice(0,limit);
+        let limitedLogs = user.log.slice(0,limit);
+        let logs = [];
+
+        limitedLogs.forEach((obj) => {
+          let exercise = {};
+          exercise.description = obj.description;
+          exercise.duration = obj.duration;
+          exercise.date = obj.date.toDateString();
+          logs.push(exercise);
+        })
+
+        returnedObj['log'] = logs;
+
         return res.json(returnedObj);
       } else {
         console.log(err);
         return res.redirect(req_url);
       }
     })
-
   }
 });
 
