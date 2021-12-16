@@ -147,13 +147,12 @@ app.get('/api/users/:_id/logs', (req, res) => {
           logs.push(exercise);
         })
         returnedObj['_id'] = user._id;
-        returnedObj['count'] = logs.length;
+        returnedObj['count'] = user.log.length;
         returnedObj['log'] = logs;
 
-        return res.json(returnedObj);
+        res.json(returnedObj);
       } else {
-        console.log(err);
-        return res.redirect(req_url);
+        res.json({"error": "user not found"});
       }
     })
   }
