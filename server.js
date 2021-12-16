@@ -146,9 +146,9 @@ app.get('/api/users/:_id/logs', (req, res) => {
           exercise.date = obj.date.toDateString();
           logs.push(exercise);
         })
-
-        returnedObj['log'] = logs;
+        returnedObj['_id'] = user._id;
         returnedObj['count'] = logs.length;
+        returnedObj['log'] = logs;
 
         return res.json(returnedObj);
       } else {
