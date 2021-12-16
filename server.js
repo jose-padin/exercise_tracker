@@ -65,12 +65,20 @@ app.get('/api/users/:username', (req, res) => {
 
 app.post('/api/users', (req, res) => {
   const { username } = req.body;
+  const req_url = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
 
   if (username) {
-    let user = new User({username: username});
-    user.save((err, savedUser) => {
-      if (!err) {
-        return res.json({username: savedUser.username, _id: savedUser._id})
+    User.findOne({username: username}, (err, user) => {
+      if (err) return res.redirect(req_url);
+      if (user) {
+        return res.send('Username already taken');
+      } else {
+        let user = new User({username: username});
+        user.save((err, savedUser) => {
+          if (!err) {
+            return res.json({username: savedUser.username, _id: savedUser._id})
+          }
+        })
       }
     })
   }
@@ -113,14 +121,14 @@ app.post('/api/users/:_id/exercises', (req, res) => {
       {new: true})
       .then(updadetUser => {
         res.json({
-          _id: updadetUser._id,
           username: updadetUser.username,
           description: updadetUser.log[updadetUser.log.length - 1].description,
           duration: updadetUser.log[updadetUser.log.length - 1].duration,
+          _id: updadetUser._id,
           date: updadetUser.log[updadetUser.log.length - 1].date.toDateString()
         })
       }).catch(err => {
-        console.log(err)
+        return console.log(err);
       });
     }
   })
