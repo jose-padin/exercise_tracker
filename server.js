@@ -148,6 +148,7 @@ app.get('/api/users/:_id/logs', (req, res) => {
         })
 
         returnedObj['log'] = logs;
+        returnedObj['count'] = logs.length;
 
         return res.json(returnedObj);
       } else {
