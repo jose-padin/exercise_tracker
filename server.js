@@ -99,16 +99,14 @@ app.get('/api/users', (req, res) => {
 
 
 app.post('/api/users/:_id/exercises', (req, res) => {
-  const user_id = req.body._id;
-  const description = req.body.description;
-  const duration = req.body.duration;
-  let date = req.body.date;
+  const { _id } = req.params
+  let { description, duration, date } = req.body
 
-  if (user_id && description && duration) {
+  if (_id && description && duration) {
     date ? dateObj = new Date(date) : dateObj = new Date();
 
     User.findOneAndUpdate(
-      {_id: user_id},
+      {_id: _id},
       {
         $push: {
           log: {
@@ -137,7 +135,7 @@ app.post('/api/users/:_id/exercises', (req, res) => {
 // TODO: redo without Exercise
 app.get('/api/users/:_id/logs', (req, res) => {
   const req_url = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
-  const user_id = req.params._id;
+  const _id = req.params._id;
   const query_params = req.query;
   let date_from = query_params['from'];
   let date_to = query_params['to'];
@@ -157,15 +155,15 @@ app.get('/api/users/:_id/logs', (req, res) => {
     limit = parseInt(limit);
   }
 
-  if (user_id) {
+  if (_id) {
     if (date_from && date_to) {
-      query = User.find({_id: user_id, 'log.date': {$gte: date_from, $lte: date_to}});
+      query = User.find({_id: _id, 'log.date': {$gte: date_from, $lte: date_to}});
     } else if (date_from && !date_to) {
-      query = User.find({_id: user_id, 'log.date': {$gte: date_from}});
+      query = User.find({_id: _id, 'log.date': {$gte: date_from}});
     } else if (date_to && !date_from) {
-      query = User.find({_id: user_id, 'log.date': {$lte: date_to}});
+      query = User.find({_id: _id, 'log.date': {$lte: date_to}});
     } else {
-      query = User.find({_id: user_id});
+      query = User.find({_id: _id});
     }
 
     if (limit) query = query.limit(limit)
